@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* Keep original vars if needed, but Tailwind handles most colors. */
+:root {
+  --color-background: #1c1917; /* gray-900 */
+  --color-text: #f5f5f4; /* gray-100 */
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+}

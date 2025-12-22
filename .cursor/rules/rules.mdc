@@ -1,0 +1,260 @@
+---
+description: "全專案統一規範"
+alwaysApply: true
+---
+## 專案資訊
+
+- **專案名稱**： The 12 Week Year
+- **Vue 版本**：Vue 3.5+（支援 props 解構）
+- **建置工具**：Vite
+- **樣式方案**：Tailwind CSS
+- **Context 來源**：
+  - 優先讀取 `package.json` 確認依賴版本
+  - 讀取 `tailwind.config.js`（若存在）以掌握 Design Tokens
+
+## 技術選型（專案層）
+
+```
+Desktop Framework: Electron
+Framework: Vue3
+Build Tools: Vite
+Language: TypeScript
+HTTP Client: axios
+State Management: pinia
+Data Storage: SQLite (via better-sqlite3)
+CSS Framework: Tailwind CSS v4
+Component Style: Composition API + <script setup>
+Icon: Phosphor Icons
+```
+
+---
+
+## AI 行為基準
+
+AI 在編寫 Vue 程式碼時，必須遵守以下原則：
+
+- 僅修改使用者指定的區域（script / template / style）
+- 若修改涉及多區塊，需先描述修改原因
+- 不得重構未被要求的功能
+- 不得 rename props / emits / CSS token，除非 spec 已更新
+- 不得修改 `<spec>` 內容，除非使用者明確指示「更新 Spec」
+- 若 spec 不足以描述行為，需要求補充資訊，而非猜測
+- 若 Spec 使用了未定義的 Design Token，應主動詢問或使用專案現有的近似色
+
+---
+
+## 程式碼規範
+
+### ALWAYS（必須）
+
+- 使用 `<script setup lang="ts">`
+- 使用 Composition API（`ref`, `computed`, `watch`）
+- 使用 `defineProps<T>()` 定義 props
+- 使用 `defineEmits<T>()` 定義事件
+- 修改元件前**先讀取 `<spec>` 區塊**
+- css 樣式只取用 tailwindcss.config.js 內的樣式
+
+### NEVER（禁止）
+
+- 使用 Options API（`data()`, `methods`, `computed:{}`）
+- 使用 `this` 關鍵字
+- 使用 `any` 類型
+- 刪除或忽略 `<spec>` 區塊
+- 在 `<spec>` 中寫入程式庫名稱（如 axios、lodash）
+  → 理由：Spec 描述「意圖」，技術選型屬於專案層，不應綁死實作
+
+### Composables 規範
+
+- Composables 不需要 `<spec>` 區塊
+- 應有 JSDoc 說明用途與回傳值
+- 命名以 `use` 開頭（如 `useUser`、`useFetch`）
+
+---
+
+## SDD 協議（Spec-Driven Development）
+
+### 核心原則
+
+1. **Spec 優先**：修改元件前，先讀取 `<spec>` 區塊
+2. **單一真理來源**：`<spec>` 定義「做什麼」，程式碼實現「怎麼做」
+3. **意圖優先**：若程式碼與 spec 衝突，修改程式碼以符合 spec
+4. **同步更新**：行為變更時，先更新 spec，再更新程式碼
+
+### 衝突處理優先度
+
+1. 若 `<spec>` 與程式碼衝突 → 修正程式碼
+2. 若 `<spec>` 不完整 → 詢問使用者補充，而非自行腦補
+3. 若 `<spec>` 與專案技術選型衝突 → 請求使用者確認
+
+### 兩層架構
+
+| 層級 | 檔案 | 負責內容 | 範例 |
+|------|------|----------|------|
+| 專案層 | 此檔案 | **How**（技術選型） | 用 axios、用 Tailwind |
+| 元件層 | `<spec>` | **What**（業務意圖） | 獲取使用者、顯示金框 |
+
+### Spec 撰寫規範
+
+**該寫**：
+- 業務邏輯（What）：這個元件做什麼
+- 使用者互動：點擊、hover 等行為
+- 視覺規範：Design Token（如 `amber-400`、`gray-300`）
+
+**不該寫**：
+- 程式庫選擇：axios、lodash 等（屬於專案層）
+- 非必要的佈局細節：flex、justify-center（除非佈局本身是意圖，如「左側固定、右側滾動」）
+- 瑣碎的 CSS class：px-4、mt-2（應描述「間距寬鬆」等語意，讓 AI 決定數值）
+- 錯誤處理機制：try-catch 的具體實作
+- 程式碼或 pseudocode（Spec 僅描述「意圖」）
+
+---
+
+## 元件結構範本
+
+```vue
+<spec lang="md">
+# 元件名稱
+## Props
+- propName: type - 說明
+## Behavior
+- 元件在不同狀態下的行為（loading / empty / error）
+- 根據 props 的條件產生的邏輯效果
+## Visuals
+- 視覺規範描述
+- Design Token: amber-400, gray-300
+## Interaction
+- 使用者互動行為
+- 事件名稱與 payload
+</spec>
+<script setup lang="ts">
+// 根據 <spec> 實作邏輯
+</script>
+<template>
+  <!-- 根據 <spec> 實作 UI -->
+</template>
+<style scoped>
+/* 優先使用 Tailwind，必要時才寫 scoped CSS */
+</style>
+```
+
+> ⚠️ Spec 僅描述「意圖」，不得包含程式碼或 pseudocode
+### 具體範例（UserCard.vue）
+
+```vue
+<spec lang="md">
+# UserCard
+## Props
+- user: User - 使用者資料物件
+- highlighted: boolean - 是否顯示金框高亮
+## Behavior
+- 若 user 為 null，顯示 skeleton 佔位
+- highlighted 為 true 時，卡片邊框為金色
+## Visuals
+- Design Token: amber-400（高亮邊框）、gray-100（背景）
+## Interaction
+- 點擊卡片 → emit `select` 事件，payload 為 user.id
+</spec>
+```
+
+---
+
+## 反向同步 Prompt
+
+當程式碼大幅修改後，輸入 `Sync Spec`、`更新 Spec` 或 `同步規格` 讓 AI 更新 spec。
+AI 應執行以下邏輯：
+
+```
+請閱讀這個元件的 <script> 與 <template>，更新 <spec> 區塊。
+## 保留
+- 業務邏輯（What）：這個元件做什麼
+- 使用者互動：點擊、hover 等行為
+- 視覺規範：Design Token（如 amber-400、gray-300）
+## 移除
+- 程式庫選擇：axios、lodash 等
+- 佈局細節：flex、grid、justify-center
+- 錯誤處理機制：try-catch 的具體實作
+## 注意
+- 不要加入程式碼中不存在的功能或互動
+- 不要猜測或腦補需求
+- 若不確定某功能是否為意圖，必須詢問使用者，而非寫進 Spec
+```
+
+---
+
+## Vue 特有注意事項
+
+### Vue 版本相容性
+
+- **Vue 3.5+**：可直接解構 props，保持響應性
+- **Vue 3.4 以下**：禁止直接解構 props，使用 `toRef()` 或 `toRefs()`
+
+> 若不確定版本，請查閱專案的 `package.json` 中的 `vue` 版本
+### 常見陷阱提醒
+
+1. **Reactivity Loss**：不要在 setup 外解構 reactive 物件
+2. **v-html XSS**：永遠不要將使用者輸入放入 v-html
+3. **ref vs reactive**：優先使用 `ref()`，除非有明確理由用 `reactive()`
+
+---
+
+## 快速設定指南
+### Vite Plugin（讓 `<spec>` 零執行成本）
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+function ignoreSpecBlock() {
+  return {
+    name: 'ignore-spec-block',
+    enforce: 'pre',
+    transform(code, id) {
+      if (id.includes('?vue&type=spec')) {
+        return { code: 'export default {}', map: null }
+      }
+    }
+  }
+}
+
+export default defineConfig({
+  plugins: [vue(), ignoreSpecBlock()]
+})
+```
+
+> 此 Plugin 僅在打包時忽略 `<spec>` 的執行，不會移除編輯器內的 spec 內容
+> 若使用 Nuxt，無需加入此 Plugin；Nuxt 會自動忽略未知 Custom Block
+### TypeScript 宣告（消除 IDE 警告）
+
+```typescript
+// src/shims-spec.d.ts
+declare module 'vue' {
+  interface SFCCustomBlocksOptions {
+    spec?: string
+  }
+}
+```
+
+> 若使用 Volar 1.8+ 且無警告，可跳過此步驟
+### 語法高亮
+
+使用 `<spec lang="md">` 讓 Volar 套用 Markdown 語法高亮
+
+> 若未正確高亮，請確認已安裝 **Vue - Official**（原 Volar）擴充套件
+### VS Code 設定建議（選用）
+
+```json
+// .vscode/settings.json
+{
+  "volar.vueserver.maxOldSpaceSize": 4096,
+  "[vue]": {
+    "editor.defaultFormatter": "Vue.volar"
+  }
+}
+```
+
+---
+
+> 來源：WebConf 2025「AI 只懂 React？Vue.js 也能 Vibe Coding！」
+> 講者：Kuro Hsu
+> 授權：MIT License（歡迎自由修改並應用於您的專案）
