@@ -1,6 +1,8 @@
 <spec lang="md">
 # Settings View
+
 ## Behavior
+
 - Display application settings
 - "Delete Confirmation" switch:
   - Toggle `store.confirmDelete`
@@ -18,12 +20,14 @@
   - On confirm, creates new cycle and sets it as active
 
 ## Visuals
+
 - Simple list of settings
 - Plan Settings section with inputs
 - Toggle switch component (custom or standard checkbox styled)
 - Primary button for "Start New Cycle"
 
 ## Interaction
+
 - Click switch -> toggle value
 - Change Start Date -> Update End Date automatically
 - Click Save -> Update current cycle
@@ -62,17 +66,21 @@ onMounted(async () => {
 })
 
 // Watch for changes in store's current cycle to update form
-watch(() => store.currentCycle, (newVal) => {
-  if (newVal) {
-    cycleForm.value = {
-      title: newVal.title,
-      start_date: newVal.start_date,
-      end_date: newVal.end_date
+watch(
+  () => store.currentCycle,
+  (newVal) => {
+    if (newVal) {
+      cycleForm.value = {
+        title: newVal.title,
+        start_date: newVal.start_date,
+        end_date: newVal.end_date
+      }
     }
-  }
-}, { deep: true })
+  },
+  { deep: true }
+)
 
-const calculateEndDate = (startDate: string) => {
+const calculateEndDate = (startDate: string): string => {
   if (!startDate) return ''
   const date = new Date(startDate)
   // Add 12 weeks (84 days)
@@ -85,20 +93,27 @@ const calculateEndDate = (startDate: string) => {
 }
 
 // Watch start_date to auto-calculate end_date for Current Cycle Form
-watch(() => cycleForm.value.start_date, (newDate) => {
-  if (newDate) {
-    cycleForm.value.end_date = calculateEndDate(newDate)
+watch(
+  () => cycleForm.value.start_date,
+  (newDate) => {
+    if (newDate) {
+      cycleForm.value.end_date = calculateEndDate(newDate)
+    }
   }
-})
+)
 
 // Watch start_date to auto-calculate end_date for New Cycle Form
-watch(() => newCycleForm.value.start_date, (newDate) => {
-  if (newDate) {
-    newCycleForm.value.end_date = calculateEndDate(newDate)
-  }
-}, { immediate: true })
+watch(
+  () => newCycleForm.value.start_date,
+  (newDate) => {
+    if (newDate) {
+      newCycleForm.value.end_date = calculateEndDate(newDate)
+    }
+  },
+  { immediate: true }
+)
 
-const handleUpdateCycle = async () => {
+const handleUpdateCycle = async (): Promise<void> => {
   if (!store.currentCycle) return
   try {
     await store.updateCycle({
@@ -111,7 +126,7 @@ const handleUpdateCycle = async () => {
   }
 }
 
-const handleCreateCycle = async () => {
+const handleCreateCycle = async (): Promise<void> => {
   try {
     await store.createCycle(newCycleForm.value)
     isNewCycleMode.value = false
@@ -140,8 +155,8 @@ const handleCreateCycle = async () => {
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-semibold text-gray-200">Settings Cycle</h2>
           <button
-            @click="isNewCycleMode = true"
             class="flex items-center gap-2 px-3 py-1.5 text-sm bg-morandi-blue/10 text-morandi-blue hover:bg-morandi-blue/20 rounded-md transition-colors"
+            @click="isNewCycleMode = true"
           >
             <PhPlus :size="16" />
             Start New Cycle
@@ -171,7 +186,9 @@ const handleCreateCycle = async () => {
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">End Date (Calculated)</label>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >End Date (Calculated)</label
+                >
                 <input
                   v-model="cycleForm.end_date"
                   type="date"
@@ -184,8 +201,8 @@ const handleCreateCycle = async () => {
 
           <div class="flex justify-end pt-2">
             <button
-              @click="handleUpdateCycle"
               class="flex items-center gap-2 px-4 py-2 bg-morandi-blue text-white rounded-md hover:bg-morandi-blue-light transition-colors"
+              @click="handleUpdateCycle"
             >
               <PhFloppyDisk :size="18" />
               Save Changes
@@ -202,15 +219,18 @@ const handleCreateCycle = async () => {
           </h2>
           <button
             v-if="store.currentCycle"
-            @click="isNewCycleMode = false"
             class="text-sm text-gray-400 hover:text-gray-200"
+            @click="isNewCycleMode = false"
           >
             Cancel
           </button>
         </div>
 
         <div class="bg-gray-800/30 rounded-lg p-6 border border-gray-700/50 space-y-4">
-          <div v-if="store.currentCycle" class="p-3 bg-amber-900/20 text-amber-200 rounded text-sm mb-2">
+          <div
+            v-if="store.currentCycle"
+            class="p-3 bg-amber-900/20 text-amber-200 rounded text-sm mb-2"
+          >
             Starting a new cycle will archive the current one.
           </div>
 
@@ -236,7 +256,9 @@ const handleCreateCycle = async () => {
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">End Date (Calculated)</label>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >End Date (Calculated)</label
+                >
                 <input
                   v-model="newCycleForm.end_date"
                   type="date"
@@ -249,8 +271,8 @@ const handleCreateCycle = async () => {
 
           <div class="flex justify-end pt-2">
             <button
-              @click="handleCreateCycle"
               class="flex items-center gap-2 px-4 py-2 bg-morandi-blue text-white rounded-md hover:bg-morandi-blue-light transition-colors"
+              @click="handleCreateCycle"
             >
               <PhPlus :size="18" />
               Start Cycle
@@ -270,8 +292,8 @@ const handleCreateCycle = async () => {
             </div>
 
             <button
-              @click="store.confirmDelete = !store.confirmDelete"
               class="text-morandi-blue hover:text-morandi-blue-light transition-colors focus:outline-none"
+              @click="store.confirmDelete = !store.confirmDelete"
             >
               <component
                 :is="store.confirmDelete ? PhToggleRight : PhToggleLeft"
@@ -286,4 +308,3 @@ const handleCreateCycle = async () => {
     </div>
   </div>
 </template>
-

@@ -1,9 +1,12 @@
 <spec lang="md">
 # TargetPlanningCard
+
 ## Props
+
 - target: Project - The target (project) data object
 
 ## Behavior
+
 - Display 3 columns corresponding to Month 1, Month 2, Month 3
 - For each month, display 4 weeks (e.g. Month 1: w1-w4)
 - Show date range for each week based on current quarter start
@@ -11,6 +14,7 @@
 - List existing weekly actions for each week
 
 ## Visuals
+
 - 3 Columns (Month 1, 2, 3)
 - Inside each column, list the 4 weeks with date ranges (e.g. "WEEK 1 (1/1~1/7)")
 - Inside each week, list actions.
@@ -18,6 +22,7 @@
 - Fixed max height for month columns (450px) with scrollbar for overflow content
 
 ## Interaction
+
 - Add action -> create `WeeklyAction`
 </spec>
 
@@ -200,4 +205,3 @@ onMounted(() => {
   background-color: rgba(156, 163, 175, 0.8);
 }
 </style>
-

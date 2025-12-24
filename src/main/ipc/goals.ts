@@ -36,6 +36,22 @@ export function setupGoalsHandlers(): void {
     }
   })
 
+  ipcMain.handle('goals:updateProject', (_, data) => {
+    try {
+      const { id, title, description, deadline, note } = data
+      const stmt = db.prepare(`
+        UPDATE projects 
+        SET title = ?, description = ?, deadline = ?, note = ?
+        WHERE id = ?
+      `)
+      stmt.run(title, description, deadline || null, note || null, id)
+      return true
+    } catch (error) {
+      console.error('Error updating project:', error)
+      throw error
+    }
+  })
+
   ipcMain.handle('goals:getActions', (_, projectId: number, weekNumber: number) => {
     try {
       const stmt = db.prepare('SELECT * FROM weekly_actions WHERE project_id = ? AND week_number = ? ORDER BY created_at ASC')
@@ -66,17 +82,19 @@ export function setupGoalsHandlers(): void {
 
   ipcMain.handle('goals:createAction', (_, data) => {
     try {
-      const { project_id, week_number, content } = data
+      const { project_id, week_number, content, due_date, priority } = data
       const stmt = db.prepare(`
-        INSERT INTO weekly_actions (project_id, week_number, content, is_completed)
-        VALUES (?, ?, ?, 0)
+        INSERT INTO weekly_actions (project_id, week_number, content, due_date, priority, is_completed)
+        VALUES (?, ?, ?, ?, ?, 0)
       `)
-      const info = stmt.run(project_id, week_number, content)
+      const info = stmt.run(project_id, week_number, content, due_date || null, priority || 'none')
       return {
         id: info.lastInsertRowid,
         project_id,
         week_number,
         content,
+        due_date: due_date || undefined,
+        priority: priority || 'none',
         is_completed: false,
         created_at: new Date().toISOString()
       }
@@ -151,6 +169,43 @@ export function setupGoalsHandlers(): void {
       return true
     } catch (error) {
       console.error('Error toggling action:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('goals:updateAction', (_, data) => {
+    try {
+      const { id, content, due_date, priority, week_number } = data
+      
+      // Build dynamic SQL based on provided fields
+      const updates: string[] = []
+      const values: any[] = []
+      
+      if (content !== undefined) {
+        updates.push('content = ?')
+        values.push(content)
+      }
+      if (due_date !== undefined) {
+        updates.push('due_date = ?')
+        values.push(due_date || null)
+      }
+      if (priority !== undefined) {
+        updates.push('priority = ?')
+        values.push(priority || 'none')
+      }
+      if (week_number !== undefined) {
+        updates.push('week_number = ?')
+        values.push(week_number)
+      }
+      
+      if (updates.length === 0) return true
+      
+      values.push(id)
+      const stmt = db.prepare(`UPDATE weekly_actions SET ${updates.join(', ')} WHERE id = ?`)
+      stmt.run(...values)
+      return true
+    } catch (error) {
+      console.error('Error updating action:', error)
       throw error
     }
   })

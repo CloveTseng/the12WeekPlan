@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Project, WeeklyAction, MonthlyPlan, CreateProjectDTO, CreateActionDTO, CreateMonthlyPlanDTO, PlanCycle, CreateCycleDTO, UpdateCycleDTO } from '../types/goals'
+import type { Project, WeeklyAction, MonthlyPlan, CreateProjectDTO, UpdateProjectDTO, CreateActionDTO, UpdateActionDTO, CreateMonthlyPlanDTO, PlanCycle, CreateCycleDTO, UpdateCycleDTO } from '../types/goals'
 
 export const useGoalsStore = defineStore('goals', () => {
   const currentYear = ref(new Date().getFullYear())
@@ -12,6 +12,7 @@ export const useGoalsStore = defineStore('goals', () => {
   const actions = ref<Record<number, WeeklyAction[]>>({}) // Map projectId -> actions[]
   const monthlyPlans = ref<Record<number, MonthlyPlan[]>>({}) // Map projectId -> monthlyPlans[]
   const confirmDelete = ref(true) // Setting: Confirm before delete
+  const autoSortByPriority = ref(true) // Setting: Auto sort actions by priority
 
   // Helper to safely access API
   const getApi = () => {
@@ -34,6 +35,19 @@ export const useGoalsStore = defineStore('goals', () => {
     const newProject = await getApi().createProject(data)
     projects.value.unshift(newProject)
     return newProject
+  }
+
+  const updateProject = async (data: UpdateProjectDTO) => {
+    await getApi().updateProject(data)
+    const project = projects.value.find(p => p.id === data.id)
+    if (project) {
+      project.title = data.title
+      project.description = data.description
+      project.deadline = data.deadline
+      if (data.note !== undefined) {
+        project.note = data.note
+      }
+    }
   }
 
   const fetchActions = async (projectId: number) => {
@@ -77,6 +91,26 @@ export const useGoalsStore = defineStore('goals', () => {
     }
     actions.value[data.project_id].push(newAction)
     return newAction
+  }
+
+  const updateAction = async (data: UpdateActionDTO, projectId: number) => {
+    await getApi().updateAction(data)
+    const projectActions = actions.value[projectId]
+    const action = projectActions?.find(a => a.id === data.id)
+    if (action) {
+      if (data.content !== undefined) {
+        action.content = data.content
+      }
+      if (data.due_date !== undefined) {
+        action.due_date = data.due_date
+      }
+      if (data.priority !== undefined) {
+        action.priority = data.priority
+      }
+      if (data.week_number !== undefined) {
+        action.week_number = data.week_number
+      }
+    }
   }
 
   const toggleAction = async (actionId: number, isCompleted: boolean, projectId: number) => {
@@ -204,11 +238,14 @@ export const useGoalsStore = defineStore('goals', () => {
     actions,
     monthlyPlans,
     confirmDelete,
+    autoSortByPriority,
     fetchProjects,
     addProject,
+    updateProject,
     fetchActions,
     fetchAllActions,
     addAction,
+    updateAction,
     toggleAction,
     deleteAction,
     fetchMonthlyPlans,
