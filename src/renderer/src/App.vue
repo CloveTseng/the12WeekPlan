@@ -30,8 +30,6 @@
 </spec>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useGoalsStore } from './stores/goals'
 import { 
   PhLightning, 
   PhLayout, 
@@ -41,12 +39,6 @@ import {
   PhArchive, 
   PhGearSix 
 } from '@phosphor-icons/vue'
-
-const store = useGoalsStore()
-
-onMounted(() => {
-  store.fetchCurrentCycle()
-})
 </script>
 
 <template>

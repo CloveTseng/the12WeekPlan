@@ -51,6 +51,30 @@ export interface CreateMonthlyPlanDTO {
   is_primary: boolean
 }
 
+export interface Cycle {
+  id: number
+  title: string
+  start_date: string
+  end_date: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface CreateCycleDTO {
+  title: string
+  start_date: string
+  end_date: string
+  is_active: boolean
+}
+
+export interface UpdateCycleDTO {
+  id: number
+  title?: string
+  start_date?: string
+  end_date?: string
+  is_active?: boolean
+}
+
 export interface GoalsAPI {
   getProjects(year: number, quarter: number): Promise<Project[]>
   createProject(data: CreateProjectDTO): Promise<Project>
@@ -63,6 +87,9 @@ export interface GoalsAPI {
   createMonthlyPlan(data: CreateMonthlyPlanDTO): Promise<MonthlyPlan>
   deleteMonthlyPlan(planId: number): Promise<boolean>
   toggleMonthlyPlanPrimary(planId: number, isPrimary: boolean): Promise<boolean>
+  getCurrentCycle(): Promise<Cycle | null>
+  createCycle(data: CreateCycleDTO): Promise<Cycle>
+  updateCycle(data: UpdateCycleDTO): Promise<Cycle>
 }
 
 declare global {

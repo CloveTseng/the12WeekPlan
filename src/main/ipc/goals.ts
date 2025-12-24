@@ -36,22 +36,6 @@ export function setupGoalsHandlers(): void {
     }
   })
 
-  ipcMain.handle('goals:updateProject', (_, data) => {
-    try {
-      const { id, title, description, deadline, note } = data
-      const stmt = db.prepare(`
-        UPDATE projects 
-        SET title = ?, description = ?, deadline = ?, note = ?
-        WHERE id = ?
-      `)
-      stmt.run(title, description, deadline || null, note || null, id)
-      return true
-    } catch (error) {
-      console.error('Error updating project:', error)
-      throw error
-    }
-  })
-
   ipcMain.handle('goals:getActions', (_, projectId: number, weekNumber: number) => {
     try {
       const stmt = db.prepare('SELECT * FROM weekly_actions WHERE project_id = ? AND week_number = ? ORDER BY created_at ASC')
@@ -82,19 +66,17 @@ export function setupGoalsHandlers(): void {
 
   ipcMain.handle('goals:createAction', (_, data) => {
     try {
-      const { project_id, week_number, content, due_date, priority } = data
+      const { project_id, week_number, content } = data
       const stmt = db.prepare(`
-        INSERT INTO weekly_actions (project_id, week_number, content, due_date, priority, is_completed)
-        VALUES (?, ?, ?, ?, ?, 0)
+        INSERT INTO weekly_actions (project_id, week_number, content, is_completed)
+        VALUES (?, ?, ?, 0)
       `)
-      const info = stmt.run(project_id, week_number, content, due_date || null, priority || 'none')
+      const info = stmt.run(project_id, week_number, content)
       return {
         id: info.lastInsertRowid,
         project_id,
         week_number,
         content,
-        due_date: due_date || undefined,
-        priority: priority || 'none',
         is_completed: false,
         created_at: new Date().toISOString()
       }
@@ -173,43 +155,6 @@ export function setupGoalsHandlers(): void {
     }
   })
 
-  ipcMain.handle('goals:updateAction', (_, data) => {
-    try {
-      const { id, content, due_date, priority, week_number } = data
-      
-      // Build dynamic SQL based on provided fields
-      const updates: string[] = []
-      const values: any[] = []
-      
-      if (content !== undefined) {
-        updates.push('content = ?')
-        values.push(content)
-      }
-      if (due_date !== undefined) {
-        updates.push('due_date = ?')
-        values.push(due_date || null)
-      }
-      if (priority !== undefined) {
-        updates.push('priority = ?')
-        values.push(priority || 'none')
-      }
-      if (week_number !== undefined) {
-        updates.push('week_number = ?')
-        values.push(week_number)
-      }
-      
-      if (updates.length === 0) return true
-      
-      values.push(id)
-      const stmt = db.prepare(`UPDATE weekly_actions SET ${updates.join(', ')} WHERE id = ?`)
-      stmt.run(...values)
-      return true
-    } catch (error) {
-      console.error('Error updating action:', error)
-      throw error
-    }
-  })
-
   ipcMain.handle('goals:deleteAction', (_, actionId: number) => {
     try {
       const stmt = db.prepare('DELETE FROM weekly_actions WHERE id = ?')
@@ -221,21 +166,17 @@ export function setupGoalsHandlers(): void {
     }
   })
 
-  // Plan Cycle Handlers
-  ipcMain.handle('goals:getCurrentCycle', () => {
+  ipcMain.handle('goals:getCurrentCycle', (_) => {
     try {
-      const stmt = db.prepare('SELECT * FROM plan_cycles WHERE is_active = 1 LIMIT 1')
-      const cycle = stmt.get() as any
-      if (!cycle) {
-        // If no active cycle, find the latest one
-        const latestStmt = db.prepare('SELECT * FROM plan_cycles ORDER BY created_at DESC LIMIT 1')
-        const latest = latestStmt.get() as any
-        if (latest) {
-          return { ...latest, is_active: Boolean(latest.is_active) }
+      const stmt = db.prepare('SELECT * FROM cycles WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1')
+      const cycle = stmt.get()
+      if (cycle) {
+        return {
+          ...cycle,
+          is_active: Boolean((cycle as any).is_active)
         }
-        return null
       }
-      return { ...cycle, is_active: Boolean(cycle.is_active) }
+      return null
     } catch (error) {
       console.error('Error fetching current cycle:', error)
       throw error
@@ -244,24 +185,29 @@ export function setupGoalsHandlers(): void {
 
   ipcMain.handle('goals:createCycle', (_, data) => {
     try {
-      const { title, start_date, end_date } = data
+      const { title, start_date, end_date, is_active } = data
       
-      // Deactivate other cycles
-      db.prepare('UPDATE plan_cycles SET is_active = 0').run()
-
-      const stmt = db.prepare(`
-        INSERT INTO plan_cycles (title, start_date, end_date, is_active)
-        VALUES (?, ?, ?, 1)
-      `)
-      const info = stmt.run(title, start_date, end_date)
-      return {
-        id: info.lastInsertRowid,
-        title,
-        start_date,
-        end_date,
-        is_active: true,
-        created_at: new Date().toISOString()
-      }
+      const transaction = db.transaction(() => {
+        if (is_active) {
+          db.prepare('UPDATE cycles SET is_active = 0').run()
+        }
+        
+        const stmt = db.prepare(`
+          INSERT INTO cycles (title, start_date, end_date, is_active)
+          VALUES (?, ?, ?, ?)
+        `)
+        const info = stmt.run(title, start_date, end_date, is_active ? 1 : 0)
+        return {
+          id: info.lastInsertRowid,
+          title,
+          start_date,
+          end_date,
+          is_active,
+          created_at: new Date().toISOString()
+        }
+      })
+      
+      return transaction()
     } catch (error) {
       console.error('Error creating cycle:', error)
       throw error
@@ -270,14 +216,47 @@ export function setupGoalsHandlers(): void {
 
   ipcMain.handle('goals:updateCycle', (_, data) => {
     try {
-      const { id, title, start_date, end_date } = data
-      const stmt = db.prepare(`
-        UPDATE plan_cycles 
-        SET title = ?, start_date = ?, end_date = ?
-        WHERE id = ?
-      `)
-      stmt.run(title, start_date, end_date, id)
-      return { id, title, start_date, end_date }
+      const { id, title, start_date, end_date, is_active } = data
+      
+      const transaction = db.transaction(() => {
+        if (is_active) {
+          db.prepare('UPDATE cycles SET is_active = 0 WHERE id != ?').run(id)
+        }
+        
+        const updates: string[] = []
+        const values: any[] = []
+        
+        if (title !== undefined) {
+          updates.push('title = ?')
+          values.push(title)
+        }
+        if (start_date !== undefined) {
+          updates.push('start_date = ?')
+          values.push(start_date)
+        }
+        if (end_date !== undefined) {
+          updates.push('end_date = ?')
+          values.push(end_date)
+        }
+        if (is_active !== undefined) {
+          updates.push('is_active = ?')
+          values.push(is_active ? 1 : 0)
+        }
+        
+        if (updates.length > 0) {
+          values.push(id)
+          const stmt = db.prepare(`UPDATE cycles SET ${updates.join(', ')} WHERE id = ?`)
+          stmt.run(...values)
+        }
+        
+        const updated = db.prepare('SELECT * FROM cycles WHERE id = ?').get(id)
+        return {
+          ...updated,
+          is_active: Boolean((updated as any).is_active)
+        }
+      })
+      
+      return transaction()
     } catch (error) {
       console.error('Error updating cycle:', error)
       throw error

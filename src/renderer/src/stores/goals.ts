@@ -1,18 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Project, WeeklyAction, MonthlyPlan, CreateProjectDTO, UpdateProjectDTO, CreateActionDTO, UpdateActionDTO, CreateMonthlyPlanDTO, PlanCycle, CreateCycleDTO, UpdateCycleDTO } from '../types/goals'
+import type { Project, WeeklyAction, MonthlyPlan, Cycle, CreateProjectDTO, CreateActionDTO, CreateMonthlyPlanDTO, CreateCycleDTO, UpdateCycleDTO } from '../types/goals'
 
 export const useGoalsStore = defineStore('goals', () => {
   const currentYear = ref(new Date().getFullYear())
   const currentQuarter = ref(Math.ceil((new Date().getMonth() + 1) / 3))
-  const currentWeek = ref(1) // Default to Week 1
-  const currentCycle = ref<PlanCycle | null>(null)
+  const currentWeek = ref(1) // Default to Week 1, can be calculated dynamically later if needed
+  const currentCycle = ref<Cycle | null>(null)
 
   const projects = ref<Project[]>([])
   const actions = ref<Record<number, WeeklyAction[]>>({}) // Map projectId -> actions[]
   const monthlyPlans = ref<Record<number, MonthlyPlan[]>>({}) // Map projectId -> monthlyPlans[]
   const confirmDelete = ref(true) // Setting: Confirm before delete
-  const autoSortByPriority = ref(true) // Setting: Auto sort actions by priority
 
   // Helper to safely access API
   const getApi = () => {
@@ -35,19 +34,6 @@ export const useGoalsStore = defineStore('goals', () => {
     const newProject = await getApi().createProject(data)
     projects.value.unshift(newProject)
     return newProject
-  }
-
-  const updateProject = async (data: UpdateProjectDTO) => {
-    await getApi().updateProject(data)
-    const project = projects.value.find(p => p.id === data.id)
-    if (project) {
-      project.title = data.title
-      project.description = data.description
-      project.deadline = data.deadline
-      if (data.note !== undefined) {
-        project.note = data.note
-      }
-    }
   }
 
   const fetchActions = async (projectId: number) => {
@@ -91,26 +77,6 @@ export const useGoalsStore = defineStore('goals', () => {
     }
     actions.value[data.project_id].push(newAction)
     return newAction
-  }
-
-  const updateAction = async (data: UpdateActionDTO, projectId: number) => {
-    await getApi().updateAction(data)
-    const projectActions = actions.value[projectId]
-    const action = projectActions?.find(a => a.id === data.id)
-    if (action) {
-      if (data.content !== undefined) {
-        action.content = data.content
-      }
-      if (data.due_date !== undefined) {
-        action.due_date = data.due_date
-      }
-      if (data.priority !== undefined) {
-        action.priority = data.priority
-      }
-      if (data.week_number !== undefined) {
-        action.week_number = data.week_number
-      }
-    }
   }
 
   const toggleAction = async (actionId: number, isCompleted: boolean, projectId: number) => {
@@ -163,70 +129,65 @@ export const useGoalsStore = defineStore('goals', () => {
     }
   }
 
-  const calculateCurrentWeek = (startDate: string) => {
-    const start = new Date(startDate)
-    const now = new Date()
-    const diffTime = now.getTime() - start.getTime()
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    const week = Math.floor(diffDays / 7) + 1
-    return week < 1 ? 1 : week
-  }
-
   const fetchCurrentCycle = async () => {
     try {
       const cycle = await getApi().getCurrentCycle()
+      currentCycle.value = cycle
       if (cycle) {
-        currentCycle.value = cycle
-        currentWeek.value = calculateCurrentWeek(cycle.start_date)
-        
-        // Update year/quarter based on cycle start date
+        // Update year/quarter based on cycle start date to sync project view
         const startDate = new Date(cycle.start_date)
         currentYear.value = startDate.getFullYear()
         currentQuarter.value = Math.ceil((startDate.getMonth() + 1) / 3)
+        // Also could update currentWeek based on start date vs today
+        const today = new Date()
+        const startDateObj = new Date(cycle.start_date)
+        // Reset time to midnight for accurate day calculation
+        today.setHours(0, 0, 0, 0)
+        startDateObj.setHours(0, 0, 0, 0)
+        
+        const diffTime = today.getTime() - startDateObj.getTime()
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        const week = Math.floor(diffDays / 7) + 1
+        
+        // Keep week within 1-12 range or allow overflow?
+        // For now, let's strictly set it if it's positive
+        if (week > 0) {
+            currentWeek.value = week > 12 ? 12 : week
+        } else if (week <= 0) {
+             // Before start date
+            currentWeek.value = 1
+        }
       }
+      // Refresh projects with potentially new year/quarter
+      await fetchProjects()
     } catch (error) {
       console.error('Failed to fetch current cycle:', error)
     }
   }
 
   const createCycle = async (data: CreateCycleDTO) => {
-    try {
-      const newCycle = await getApi().createCycle(data)
-      currentCycle.value = newCycle
-      currentWeek.value = calculateCurrentWeek(newCycle.start_date)
-      
-      const startDate = new Date(newCycle.start_date)
-      currentYear.value = startDate.getFullYear()
-      currentQuarter.value = Math.ceil((startDate.getMonth() + 1) / 3)
-      
-      // Refresh projects for the new cycle's period
-      await fetchProjects()
-      
-      return newCycle
-    } catch (error) {
-      console.error('Failed to create cycle:', error)
-      throw error
-    }
+    const newCycle = await getApi().createCycle(data)
+    currentCycle.value = newCycle
+    // Update context
+    const startDate = new Date(newCycle.start_date)
+    currentYear.value = startDate.getFullYear()
+    currentQuarter.value = Math.ceil((startDate.getMonth() + 1) / 3)
+    currentWeek.value = 1
+    
+    // Refresh projects (will be empty for new context usually, unless mapped)
+    await fetchProjects()
+    return newCycle
   }
 
   const updateCycle = async (data: UpdateCycleDTO) => {
-    try {
-      const updatedCycle = await getApi().updateCycle(data)
-      // Merge with existing cycle to keep is_active and other fields if needed, 
-      // but API returns partial or full? My implementation returns id, title, start, end.
-      if (currentCycle.value && currentCycle.value.id === data.id) {
-        currentCycle.value = { ...currentCycle.value, ...updatedCycle }
-        currentWeek.value = calculateCurrentWeek(updatedCycle.start_date)
-        
-        const startDate = new Date(updatedCycle.start_date)
-        currentYear.value = startDate.getFullYear()
-        currentQuarter.value = Math.ceil((startDate.getMonth() + 1) / 3)
-      }
-      return updatedCycle
-    } catch (error) {
-      console.error('Failed to update cycle:', error)
-      throw error
+    const updatedCycle = await getApi().updateCycle(data)
+    // Refresh state from source to ensure all derived values (currentWeek etc) are correct
+    if (updatedCycle.is_active) {
+        await fetchCurrentCycle()
+    } else {
+        currentCycle.value = updatedCycle
     }
+    return updatedCycle
   }
 
   return {
@@ -238,14 +199,11 @@ export const useGoalsStore = defineStore('goals', () => {
     actions,
     monthlyPlans,
     confirmDelete,
-    autoSortByPriority,
     fetchProjects,
     addProject,
-    updateProject,
     fetchActions,
     fetchAllActions,
     addAction,
-    updateAction,
     toggleAction,
     deleteAction,
     fetchMonthlyPlans,
