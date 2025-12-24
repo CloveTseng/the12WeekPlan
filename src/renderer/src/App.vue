@@ -30,6 +30,7 @@
 </spec>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { 
   PhLightning, 
   PhLayout, 
@@ -39,12 +40,19 @@ import {
   PhArchive, 
   PhGearSix 
 } from '@phosphor-icons/vue'
+import { useGoalsStore } from './stores/goals'
+
+const store = useGoalsStore()
+
+onMounted(async () => {
+  await store.loadSettings()
+})
 </script>
 
 <template>
   <div class="flex h-screen bg-gray-950 text-gray-100 font-sans">
     <!-- Sidebar -->
-    <aside class="w-64 bg-gray-900 p-6 flex flex-col flex-shrink-0">
+    <aside class="w-64 bg-gray-900 p-6 flex flex-col shrink-0">
       <div class="flex items-center mb-10">
         <PhLightning :size="26" weight="regular" class="mr-2 text-morandi-blue-dark" />
         <span class="text-morandi-blue-dark text-xl font-bold">12 Week Year</span>

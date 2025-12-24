@@ -190,6 +190,25 @@ export const useGoalsStore = defineStore('goals', () => {
     return updatedCycle
   }
 
+  const loadSettings = async () => {
+    try {
+      const confirmDeleteValue = await window.api.settings.get('confirmDelete')
+      if (confirmDeleteValue !== null) {
+        confirmDelete.value = confirmDeleteValue === 'true'
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error)
+    }
+  }
+
+  const saveSettings = async () => {
+    try {
+      await window.api.settings.set('confirmDelete', String(confirmDelete.value))
+    } catch (error) {
+      console.error('Failed to save settings:', error)
+    }
+  }
+
   return {
     currentYear,
     currentQuarter,
@@ -212,6 +231,8 @@ export const useGoalsStore = defineStore('goals', () => {
     toggleMonthlyPlanPrimary,
     fetchCurrentCycle,
     createCycle,
-    updateCycle
+    updateCycle,
+    loadSettings,
+    saveSettings
   }
 })

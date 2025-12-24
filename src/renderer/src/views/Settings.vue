@@ -19,6 +19,7 @@
 - "Delete Confirmation" switch:
   - Toggle `store.confirmDelete`
   - Default: true
+  - Auto-save when toggled (no save button needed)
 
 ## Visuals
 
@@ -35,6 +36,14 @@ import { useGoalsStore } from '../stores/goals'
 import { PhToggleLeft, PhToggleRight, PhCalendarPlus, PhArrowsClockwise } from '@phosphor-icons/vue'
 
 const store = useGoalsStore()
+
+// Watch confirmDelete and auto-save
+watch(
+  () => store.confirmDelete,
+  async () => {
+    await store.saveSettings()
+  }
+)
 
 // Local state for forms
 const editMode = ref(false)

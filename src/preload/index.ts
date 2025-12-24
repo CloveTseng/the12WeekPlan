@@ -18,6 +18,10 @@ const api = {
     getCurrentCycle: () => ipcRenderer.invoke('goals:getCurrentCycle'),
     createCycle: (data: any) => ipcRenderer.invoke('goals:createCycle', data),
     updateCycle: (data: any) => ipcRenderer.invoke('goals:updateCycle', data)
+  },
+  settings: {
+    get: (key: string) => ipcRenderer.invoke('settings:get', key),
+    set: (key: string, value: string) => ipcRenderer.invoke('settings:set', key, value)
   }
 }
 

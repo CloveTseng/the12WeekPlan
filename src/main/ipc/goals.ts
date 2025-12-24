@@ -262,4 +262,31 @@ export function setupGoalsHandlers(): void {
       throw error
     }
   })
+
+  // Settings handlers
+  ipcMain.handle('settings:get', (_, key: string) => {
+    try {
+      const stmt = db.prepare('SELECT value FROM settings WHERE key = ?')
+      const result = stmt.get(key) as { value: string } | undefined
+      return result ? result.value : null
+    } catch (error) {
+      console.error('Error getting setting:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('settings:set', (_, key: string, value: string) => {
+    try {
+      const stmt = db.prepare(`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
+      `)
+      stmt.run(key, value, value)
+      return true
+    } catch (error) {
+      console.error('Error setting setting:', error)
+      throw error
+    }
+  })
 }

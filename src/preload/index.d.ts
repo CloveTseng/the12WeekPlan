@@ -92,11 +92,17 @@ export interface GoalsAPI {
   updateCycle(data: UpdateCycleDTO): Promise<Cycle>
 }
 
+export interface SettingsAPI {
+  get(key: string): Promise<string | null>
+  set(key: string, value: string): Promise<boolean>
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
     api: {
       goals: GoalsAPI
+      settings: SettingsAPI
     }
   }
 }
