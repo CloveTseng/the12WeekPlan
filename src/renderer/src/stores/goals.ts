@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Project, WeeklyAction, MonthlyPlan, Cycle, CreateProjectDTO, CreateActionDTO, CreateMonthlyPlanDTO, CreateCycleDTO, UpdateCycleDTO } from '../types/goals'
+import type { Project, WeeklyAction, MonthlyPlan, CreateProjectDTO, CreateActionDTO, CreateMonthlyPlanDTO, PlanCycle, CreateCycleDTO, UpdateCycleDTO } from '../types/goals'
 
 export const useGoalsStore = defineStore('goals', () => {
   const currentYear = ref(new Date().getFullYear())
   const currentQuarter = ref(Math.ceil((new Date().getMonth() + 1) / 3))
-  const currentWeek = ref(1) // Default to Week 1, can be calculated dynamically later if needed
-  const currentCycle = ref<Cycle | null>(null)
+  const currentWeek = ref(1) // Default to Week 1
+  const currentCycle = ref<PlanCycle | null>(null)
 
   const projects = ref<Project[]>([])
   const actions = ref<Record<number, WeeklyAction[]>>({}) // Map projectId -> actions[]
@@ -129,65 +129,70 @@ export const useGoalsStore = defineStore('goals', () => {
     }
   }
 
+  const calculateCurrentWeek = (startDate: string) => {
+    const start = new Date(startDate)
+    const now = new Date()
+    const diffTime = now.getTime() - start.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    const week = Math.floor(diffDays / 7) + 1
+    return week < 1 ? 1 : week
+  }
+
   const fetchCurrentCycle = async () => {
     try {
       const cycle = await getApi().getCurrentCycle()
-      currentCycle.value = cycle
       if (cycle) {
-        // Update year/quarter based on cycle start date to sync project view
+        currentCycle.value = cycle
+        currentWeek.value = calculateCurrentWeek(cycle.start_date)
+        
+        // Update year/quarter based on cycle start date
         const startDate = new Date(cycle.start_date)
         currentYear.value = startDate.getFullYear()
         currentQuarter.value = Math.ceil((startDate.getMonth() + 1) / 3)
-        // Also could update currentWeek based on start date vs today
-        const today = new Date()
-        const startDateObj = new Date(cycle.start_date)
-        // Reset time to midnight for accurate day calculation
-        today.setHours(0, 0, 0, 0)
-        startDateObj.setHours(0, 0, 0, 0)
-        
-        const diffTime = today.getTime() - startDateObj.getTime()
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-        const week = Math.floor(diffDays / 7) + 1
-        
-        // Keep week within 1-12 range or allow overflow?
-        // For now, let's strictly set it if it's positive
-        if (week > 0) {
-            currentWeek.value = week > 12 ? 12 : week
-        } else if (week <= 0) {
-             // Before start date
-            currentWeek.value = 1
-        }
       }
-      // Refresh projects with potentially new year/quarter
-      await fetchProjects()
     } catch (error) {
       console.error('Failed to fetch current cycle:', error)
     }
   }
 
   const createCycle = async (data: CreateCycleDTO) => {
-    const newCycle = await getApi().createCycle(data)
-    currentCycle.value = newCycle
-    // Update context
-    const startDate = new Date(newCycle.start_date)
-    currentYear.value = startDate.getFullYear()
-    currentQuarter.value = Math.ceil((startDate.getMonth() + 1) / 3)
-    currentWeek.value = 1
-    
-    // Refresh projects (will be empty for new context usually, unless mapped)
-    await fetchProjects()
-    return newCycle
+    try {
+      const newCycle = await getApi().createCycle(data)
+      currentCycle.value = newCycle
+      currentWeek.value = calculateCurrentWeek(newCycle.start_date)
+      
+      const startDate = new Date(newCycle.start_date)
+      currentYear.value = startDate.getFullYear()
+      currentQuarter.value = Math.ceil((startDate.getMonth() + 1) / 3)
+      
+      // Refresh projects for the new cycle's period
+      await fetchProjects()
+      
+      return newCycle
+    } catch (error) {
+      console.error('Failed to create cycle:', error)
+      throw error
+    }
   }
 
   const updateCycle = async (data: UpdateCycleDTO) => {
-    const updatedCycle = await getApi().updateCycle(data)
-    // Refresh state from source to ensure all derived values (currentWeek etc) are correct
-    if (updatedCycle.is_active) {
-        await fetchCurrentCycle()
-    } else {
-        currentCycle.value = updatedCycle
+    try {
+      const updatedCycle = await getApi().updateCycle(data)
+      // Merge with existing cycle to keep is_active and other fields if needed, 
+      // but API returns partial or full? My implementation returns id, title, start, end.
+      if (currentCycle.value && currentCycle.value.id === data.id) {
+        currentCycle.value = { ...currentCycle.value, ...updatedCycle }
+        currentWeek.value = calculateCurrentWeek(updatedCycle.start_date)
+        
+        const startDate = new Date(updatedCycle.start_date)
+        currentYear.value = startDate.getFullYear()
+        currentQuarter.value = Math.ceil((startDate.getMonth() + 1) / 3)
+      }
+      return updatedCycle
+    } catch (error) {
+      console.error('Failed to update cycle:', error)
+      throw error
     }
-    return updatedCycle
   }
 
   return {

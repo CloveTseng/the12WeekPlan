@@ -66,18 +66,20 @@ export function setupGoalsHandlers(): void {
 
   ipcMain.handle('goals:createAction', (_, data) => {
     try {
-      const { project_id, week_number, content } = data
+      const { project_id, week_number, content, due_date, priority } = data
       const stmt = db.prepare(`
-        INSERT INTO weekly_actions (project_id, week_number, content, is_completed)
-        VALUES (?, ?, ?, 0)
+        INSERT INTO weekly_actions (project_id, week_number, content, is_completed, due_date, priority)
+        VALUES (?, ?, ?, 0, ?, ?)
       `)
-      const info = stmt.run(project_id, week_number, content)
+      const info = stmt.run(project_id, week_number, content, due_date || null, priority || null)
       return {
         id: info.lastInsertRowid,
         project_id,
         week_number,
         content,
         is_completed: false,
+        due_date: due_date || null,
+        priority: priority || null,
         created_at: new Date().toISOString()
       }
     } catch (error) {
@@ -155,6 +157,18 @@ export function setupGoalsHandlers(): void {
     }
   })
 
+  ipcMain.handle('goals:updateAction', (_, actionId: number, data: { content: string; due_date?: string | null; priority?: string | null }) => {
+    try {
+      const { content, due_date, priority } = data
+      const stmt = db.prepare('UPDATE weekly_actions SET content = ?, due_date = ?, priority = ? WHERE id = ?')
+      stmt.run(content, due_date || null, priority || null, actionId)
+      return true
+    } catch (error) {
+      console.error('Error updating action:', error)
+      throw error
+    }
+  })
+
   ipcMain.handle('goals:deleteAction', (_, actionId: number) => {
     try {
       const stmt = db.prepare('DELETE FROM weekly_actions WHERE id = ?')
@@ -166,17 +180,21 @@ export function setupGoalsHandlers(): void {
     }
   })
 
-  ipcMain.handle('goals:getCurrentCycle', (_) => {
+  // Plan Cycle Handlers
+  ipcMain.handle('goals:getCurrentCycle', () => {
     try {
-      const stmt = db.prepare('SELECT * FROM cycles WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1')
-      const cycle = stmt.get()
-      if (cycle) {
-        return {
-          ...cycle,
-          is_active: Boolean((cycle as any).is_active)
+      const stmt = db.prepare('SELECT * FROM plan_cycles WHERE is_active = 1 LIMIT 1')
+      const cycle = stmt.get() as any
+      if (!cycle) {
+        // If no active cycle, find the latest one
+        const latestStmt = db.prepare('SELECT * FROM plan_cycles ORDER BY created_at DESC LIMIT 1')
+        const latest = latestStmt.get() as any
+        if (latest) {
+          return { ...latest, is_active: Boolean(latest.is_active) }
         }
+        return null
       }
-      return null
+      return { ...cycle, is_active: Boolean(cycle.is_active) }
     } catch (error) {
       console.error('Error fetching current cycle:', error)
       throw error
@@ -185,29 +203,24 @@ export function setupGoalsHandlers(): void {
 
   ipcMain.handle('goals:createCycle', (_, data) => {
     try {
-      const { title, start_date, end_date, is_active } = data
+      const { title, start_date, end_date } = data
       
-      const transaction = db.transaction(() => {
-        if (is_active) {
-          db.prepare('UPDATE cycles SET is_active = 0').run()
-        }
-        
-        const stmt = db.prepare(`
-          INSERT INTO cycles (title, start_date, end_date, is_active)
-          VALUES (?, ?, ?, ?)
-        `)
-        const info = stmt.run(title, start_date, end_date, is_active ? 1 : 0)
-        return {
-          id: info.lastInsertRowid,
-          title,
-          start_date,
-          end_date,
-          is_active,
-          created_at: new Date().toISOString()
-        }
-      })
-      
-      return transaction()
+      // Deactivate other cycles
+      db.prepare('UPDATE plan_cycles SET is_active = 0').run()
+
+      const stmt = db.prepare(`
+        INSERT INTO plan_cycles (title, start_date, end_date, is_active)
+        VALUES (?, ?, ?, 1)
+      `)
+      const info = stmt.run(title, start_date, end_date)
+      return {
+        id: info.lastInsertRowid,
+        title,
+        start_date,
+        end_date,
+        is_active: true,
+        created_at: new Date().toISOString()
+      }
     } catch (error) {
       console.error('Error creating cycle:', error)
       throw error
@@ -216,47 +229,14 @@ export function setupGoalsHandlers(): void {
 
   ipcMain.handle('goals:updateCycle', (_, data) => {
     try {
-      const { id, title, start_date, end_date, is_active } = data
-      
-      const transaction = db.transaction(() => {
-        if (is_active) {
-          db.prepare('UPDATE cycles SET is_active = 0 WHERE id != ?').run(id)
-        }
-        
-        const updates: string[] = []
-        const values: any[] = []
-        
-        if (title !== undefined) {
-          updates.push('title = ?')
-          values.push(title)
-        }
-        if (start_date !== undefined) {
-          updates.push('start_date = ?')
-          values.push(start_date)
-        }
-        if (end_date !== undefined) {
-          updates.push('end_date = ?')
-          values.push(end_date)
-        }
-        if (is_active !== undefined) {
-          updates.push('is_active = ?')
-          values.push(is_active ? 1 : 0)
-        }
-        
-        if (updates.length > 0) {
-          values.push(id)
-          const stmt = db.prepare(`UPDATE cycles SET ${updates.join(', ')} WHERE id = ?`)
-          stmt.run(...values)
-        }
-        
-        const updated = db.prepare('SELECT * FROM cycles WHERE id = ?').get(id)
-        return {
-          ...updated,
-          is_active: Boolean((updated as any).is_active)
-        }
-      })
-      
-      return transaction()
+      const { id, title, start_date, end_date } = data
+      const stmt = db.prepare(`
+        UPDATE plan_cycles 
+        SET title = ?, start_date = ?, end_date = ?
+        WHERE id = ?
+      `)
+      stmt.run(title, start_date, end_date, id)
+      return { id, title, start_date, end_date }
     } catch (error) {
       console.error('Error updating cycle:', error)
       throw error

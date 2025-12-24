@@ -9,12 +9,16 @@ export interface Project {
   created_at: string
 }
 
+export type Priority = 'High' | 'Medium' | 'Low' | null
+
 export interface WeeklyAction {
   id: number
   project_id: number
   week_number: number
   content: string
   is_completed: boolean
+  due_date?: string | null
+  priority?: Priority
   created_at: string
 }
 
@@ -27,7 +31,7 @@ export interface MonthlyPlan {
   created_at: string
 }
 
-export interface Cycle {
+export interface PlanCycle {
   id: number
   title: string
   start_date: string
@@ -49,6 +53,8 @@ export interface CreateActionDTO {
   project_id: number
   week_number: number
   content: string
+  due_date?: string | null
+  priority?: Priority
 }
 
 export interface CreateMonthlyPlanDTO {
@@ -62,13 +68,17 @@ export interface CreateCycleDTO {
   title: string
   start_date: string
   end_date: string
-  is_active: boolean
 }
 
 export interface UpdateCycleDTO {
   id: number
-  title?: string
-  start_date?: string
-  end_date?: string
-  is_active?: boolean
+  title: string
+  start_date: string
+  end_date: string
+}
+
+export interface UpdateActionDTO {
+  content: string
+  due_date?: string | null
+  priority?: Priority
 }

@@ -81,6 +81,10 @@ export interface GoalsAPI {
   getActions(projectId: number, weekNumber: number): Promise<WeeklyAction[]>
   getAllActions(projectId: number): Promise<WeeklyAction[]>
   createAction(data: CreateActionDTO): Promise<WeeklyAction>
+  updateAction(
+    actionId: number,
+    data: { content: string; due_date?: string | null; priority?: string | null }
+  ): Promise<boolean>
   toggleAction(actionId: number, isCompleted: boolean): Promise<boolean>
   deleteAction(actionId: number): Promise<boolean>
   getMonthlyPlans(projectId: number): Promise<MonthlyPlan[]>

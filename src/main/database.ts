@@ -28,6 +28,7 @@ export function initDatabase(): Database.Database {
       week_number INTEGER NOT NULL,
       content TEXT NOT NULL,
       is_completed INTEGER DEFAULT 0,
+      due_date TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
     );
@@ -42,7 +43,7 @@ export function initDatabase(): Database.Database {
       FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
     );
 
-    CREATE TABLE IF NOT EXISTS cycles (
+    CREATE TABLE IF NOT EXISTS plan_cycles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       start_date TEXT NOT NULL,
@@ -51,6 +52,23 @@ export function initDatabase(): Database.Database {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `)
+  
+  // Migration: Add due_date column if it doesn't exist
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(weekly_actions)").all() as any[]
+    const hasDueDate = tableInfo.some(col => col.name === 'due_date')
+    if (!hasDueDate) {
+      db.exec('ALTER TABLE weekly_actions ADD COLUMN due_date TEXT')
+      console.log('Migration: Added due_date column to weekly_actions')
+    }
+    const hasPriority = tableInfo.some(col => col.name === 'priority')
+    if (!hasPriority) {
+      db.exec('ALTER TABLE weekly_actions ADD COLUMN priority TEXT DEFAULT NULL')
+      console.log('Migration: Added priority column to weekly_actions')
+    }
+  } catch (error) {
+    console.error('Migration error:', error)
+  }
   
   console.log('Database initialized at', dbPath)
   return db

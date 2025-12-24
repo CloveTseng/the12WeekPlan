@@ -9,6 +9,7 @@ const api = {
     getActions: (projectId: number, weekNumber: number) => ipcRenderer.invoke('goals:getActions', projectId, weekNumber),
     getAllActions: (projectId: number) => ipcRenderer.invoke('goals:getAllActions', projectId),
     createAction: (data: any) => ipcRenderer.invoke('goals:createAction', data),
+    updateAction: (actionId: number, data: any) => ipcRenderer.invoke('goals:updateAction', actionId, data),
     toggleAction: (actionId: number, isCompleted: boolean) => ipcRenderer.invoke('goals:toggleAction', actionId, isCompleted),
     deleteAction: (actionId: number) => ipcRenderer.invoke('goals:deleteAction', actionId),
     getMonthlyPlans: (projectId: number) => ipcRenderer.invoke('goals:getMonthlyPlans', projectId),
