@@ -1,34 +1,20 @@
-# temp_init
+# The 12 Week Year
+這是一個為了執行 12 週計劃的專案管理軟體
 
-An Electron application with Vue and TypeScript
+## 功能特色
 
-## Recommended IDE Setup
+## 使用技術
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
+## 使用指南
+### 如何開始一個新計畫 (Project)
 
-## Project Setup
+### 如何開始一個新週期 (Cycle)
 
-### Install
+## 開發設定
 
-```bash
-$ npm install
-```
 
-### Development
+## 資訊安全與隱私 (Security & Privacy)
 
-```bash
-$ npm run dev
-```
-
-### Build
-
-```bash
-# For windows
-$ npm run build:win
-
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
-```
+## 版本資訊 (Version Info)
+當前版本: **v0.1.0**\
+完整變更紀錄請參閱 [CHANGELOG.md](./CHANGELOG.md)。

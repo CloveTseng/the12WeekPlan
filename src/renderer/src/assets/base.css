@@ -1,12 +1,87 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
+  /* --color-gray-900: #1c1917; */
+  --color-gray-950: #09090b;
+
+  --color-morandi-cream: #f2f0eb;
+  --color-morandi-beige: #ddc8b0;
+  --color-morandi-brown: #a4907c;
+  --color-morandi-clay: #b8a492;
+  --color-morandi-pink: #d9a9a9;
+  --color-morandi-rose: #d29c9c;
+  --color-morandi-blue: #9fb8ad;
+  --color-morandi-ocean: #87a8b3;
+  --color-morandi-green: #a9bfa8;
+  --color-morandi-sage: #8f9e8b;
+  --color-morandi-blue-dark: #5e7a91;
+  --color-morandi-green-dark: #8da399;
+  --color-morandi-yellow: #d9c88c;
+  --color-morandi-red: #c48a8a;
+  --color-morandi-orange: #d1a68c;
+  --color-morandi-purple: #a69cc4;
+
+  --font-sans: 'Google Sans Code', 'Inter', system-ui, sans-serif;
+}
 
 /* Keep original vars if needed, but Tailwind handles most colors. */
 :root {
-  --color-background: #1c1917; /* gray-900 */
-  --color-text: #f5f5f4; /* gray-100 */
+  --color-background: var(--color-gray-900);
+  --color-text: var(--color-gray-100);
 }
 
 body {
   background: var(--color-background);
   color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+}
+
+@layer base {
+  p {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-top: 0.5em;
+    margin-bottom: 0.25em;
+  }
+  h1 {
+    color: var(--color-morandi-blue-dark);
+  } /* Morandi Blue */
+  h2 {
+    color: var(--color-morandi-green-dark);
+  } /* Morandi Green */
+  h3 {
+    color: var(--color-morandi-yellow);
+  } /* Morandi Yellow */
+  h4 {
+    color: var(--color-morandi-red);
+  } /* Morandi Red */
+  h5 {
+    color: var(--color-morandi-orange);
+  } /* Morandi Orange */
+  h6 {
+    color: var(--color-morandi-purple);
+  } /* Morandi Purple */
+  li {
+    margin-top: 0.1em;
+    margin-bottom: 0.1em;
+  }
 }

@@ -2,7 +2,8 @@
 description: "全專案統一規範"
 alwaysApply: true
 ---
-## 專案資訊
+
+# 專案資訊
 
 - **專案名稱**： The 12 Week Year
 - **Vue 版本**：Vue 3.5+（支援 props 解構）
@@ -14,7 +15,7 @@ alwaysApply: true
 
 ## 技術選型（專案層）
 
-```
+```text
 Desktop Framework: Electron
 Framework: Vue3
 Build Tools: Vite
@@ -89,18 +90,20 @@ AI 在編寫 Vue 程式碼時，必須遵守以下原則：
 ### 兩層架構
 
 | 層級 | 檔案 | 負責內容 | 範例 |
-|------|------|----------|------|
+|---|---|----|---|
 | 專案層 | 此檔案 | **How**（技術選型） | 用 axios、用 Tailwind |
 | 元件層 | `<spec>` | **What**（業務意圖） | 獲取使用者、顯示金框 |
 
 ### Spec 撰寫規範
 
 **該寫**：
+
 - 業務邏輯（What）：這個元件做什麼
 - 使用者互動：點擊、hover 等行為
 - 視覺規範：Design Token（如 `amber-400`、`gray-300`）
 
 **不該寫**：
+
 - 程式庫選擇：axios、lodash 等（屬於專案層）
 - 非必要的佈局細節：flex、justify-center（除非佈局本身是意圖，如「左側固定、右側滾動」）
 - 瑣碎的 CSS class：px-4、mt-2（應描述「間距寬鬆」等語意，讓 AI 決定數值）
@@ -138,6 +141,7 @@ AI 在編寫 Vue 程式碼時，必須遵守以下原則：
 ```
 
 > ⚠️ Spec 僅描述「意圖」，不得包含程式碼或 pseudocode
+
 ### 具體範例（UserCard.vue）
 
 ```vue
@@ -163,7 +167,7 @@ AI 在編寫 Vue 程式碼時，必須遵守以下原則：
 當程式碼大幅修改後，輸入 `Sync Spec`、`更新 Spec` 或 `同步規格` 讓 AI 更新 spec。
 AI 應執行以下邏輯：
 
-```
+```text
 請閱讀這個元件的 <script> 與 <template>，更新 <spec> 區塊。
 ## 保留
 - 業務邏輯（What）：這個元件做什麼
@@ -189,6 +193,7 @@ AI 應執行以下邏輯：
 - **Vue 3.4 以下**：禁止直接解構 props，使用 `toRef()` 或 `toRefs()`
 
 > 若不確定版本，請查閱專案的 `package.json` 中的 `vue` 版本
+
 ### 常見陷阱提醒
 
 1. **Reactivity Loss**：不要在 setup 外解構 reactive 物件
@@ -198,6 +203,7 @@ AI 應執行以下邏輯：
 ---
 
 ## 快速設定指南
+
 ### Vite Plugin（讓 `<spec>` 零執行成本）
 
 ```javascript
@@ -224,6 +230,7 @@ export default defineConfig({
 
 > 此 Plugin 僅在打包時忽略 `<spec>` 的執行，不會移除編輯器內的 spec 內容
 > 若使用 Nuxt，無需加入此 Plugin；Nuxt 會自動忽略未知 Custom Block
+
 ### TypeScript 宣告（消除 IDE 警告）
 
 ```typescript
@@ -236,11 +243,13 @@ declare module 'vue' {
 ```
 
 > 若使用 Volar 1.8+ 且無警告，可跳過此步驟
+
 ### 語法高亮
 
 使用 `<spec lang="md">` 讓 Volar 套用 Markdown 語法高亮
 
 > 若未正確高亮，請確認已安裝 **Vue - Official**（原 Volar）擴充套件
+
 ### VS Code 設定建議（選用）
 
 ```json

@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { initDatabase } from './database'
+import { setupGoalsHandlers } from './ipc/goals'
 
 function createWindow(): void {
   // Create the browser window.
@@ -19,6 +20,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
+    mainWindow.maximize()
     mainWindow.show()
   })
 
@@ -51,6 +53,7 @@ app.whenReady().then(() => {
   })
 
   initDatabase()
+  setupGoalsHandlers()
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))

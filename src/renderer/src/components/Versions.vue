@@ -1,7 +1,29 @@
-<script setup lang="ts">
-import { reactive } from 'vue'
+<spec lang="md">
+# Versions
 
-const versions = reactive({ ...window.electron.process.versions })
+## Props
+
+(無)
+
+## Behavior
+
+- 讀取 `window.electron.process.versions` 取得環境版本資訊
+- 顯示 Electron, Chromium, Node 的版本號
+
+## Visuals
+
+- 列表顯示版本資訊
+- Design Token: 繼承既有樣式
+
+## Interaction
+
+(無)
+</spec>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const versions = ref({ ...window.electron.process.versions })
 </script>
 
 <template>
